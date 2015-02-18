@@ -2,7 +2,8 @@
 
 typedef struct queue_node_{
 	struct queue_node_ * next;
-	int value;
+	int time;
+	int sequence_number;
 }queue_node;
 
 typedef struct queue_
@@ -12,6 +13,6 @@ typedef struct queue_
 	int num_of_elements;
 }queue;
 
-queue* add_element(int value, queue* Q);
+queue* add_element(int time, int sequence_number, queue* Q);
 queue* remove_element(queue* Q);
 queue* queue_init();

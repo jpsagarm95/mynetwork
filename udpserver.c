@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
     int sock;
     int addr_len, bytes_read;
     char recv_data[1024];
-    char send_data[1024];
+    
     struct sockaddr_in server_addr, client_addr;
     if (argc < 2) {
         printf("PortNo Missing");
@@ -45,17 +45,24 @@ int main(int argc, char *argv[]) {
 
     printf("\nUDPServer Waiting for client on port %s\n", argv[1]);
     fflush(stdout);
-
+    int i = 0;
+    int base_seq_number = 0;
+    int RECV[6];
+    for(i = 0 ; i < 6 ; i++)
+    	RECV[i] = 0;
+    int seq;
     while (1) {
         bytes_read = recvfrom(sock, recv_data, 1024, 0, (struct sockaddr *) &client_addr, &addr_len);
-
+        strncpy((char *)&seq, recv_data, sizeof(int));
         //printf("Bytes sent %d\n", bytes_read);
         //recv_data[bytes_read] = '\0';
-
         //printf("\n(%s , %d) said : ", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         fwrite(recv_data + sizeof(int), sizeof(char), bytes_read - sizeof(int), stdout);
         printf("\n");
         fflush(stdout);
+        RECV[0] = seq + 1;
+        RECV[seq + 1] = 1;
+        sendto(sock, (char* )RECV, 6 * sizeof(int) + 1, 0, (struct sockaddr *) &client_addr, sizeof (struct sockaddr));
     }
     
     return 0;

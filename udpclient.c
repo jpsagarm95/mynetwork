@@ -1,5 +1,6 @@
 /* udpclient.c */
 
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -15,7 +16,11 @@
 #include <math.h>
 #include <pthread.h>
 #include "generator.h"
+#include "queue.h"
+#include "receive_ack.h"
 
+int sock;
+struct sockaddr_in server_addr;
 int debug_mode;
 char ip_name[100];
 int port_number;
@@ -34,10 +39,12 @@ int* seq_num_pos_in_buf;
 int base_seq_num;
 // three way communication -1 packet acked, 0 wait, 1 resend
 int* packets_need_resend;
-
+queue* timer_queue;
+int timeout;
 
 pthread_mutex_t buffer_lock;
 pthread_mutex_t ack_lock;
+pthread_mutex_t timer_lock;
 // struct thread_info {    
 //    pthread_t thread_id;     
 //    int       thread_num;    
@@ -60,8 +67,7 @@ int new_window(){
 }
 
 int main(int argc, char *argv[]) {
-    int sock;
-    struct sockaddr_in server_addr, client_addr;
+    struct timeval timenow;
     struct hostent *host;
     char send_data[1024];
     char recv_data[1024];
@@ -95,7 +101,9 @@ int main(int argc, char *argv[]) {
     
     printf("%s\n", "Initialized");
     pthread_t gen;
+    pthread_t ack_receiver;
     pthread_create(&gen, NULL, &packet_generator, NULL);
+    pthread_create(&ack_receiver, NULL, &receive_ack, NULL);
     //packet_generator(NULL);
     int i, total_ack, check;
     printf("%s\n", "thread created");
@@ -119,6 +127,11 @@ int main(int argc, char *argv[]) {
 				printf("\n");
 				sendto(sock, buffer[pos], total_packet_length, 0, (struct sockaddr *) &server_addr, sizeof (struct sockaddr));
 				pthread_mutex_unlock(&buffer_lock);
+
+				pthread_mutex_lock(&timer_lock);
+				gettimeofday(&timenow, NULL);
+				timer_queue = add_element(timenow.tv_sec * 1000 + (timenow.tv_usec / 1000) + timeout, base_seq_num + i , timer_queue);
+				pthread_mutex_unlock(&timer_lock);
 
 				pthread_mutex_lock(&ack_lock);
 				packets_need_resend[i] = 0;

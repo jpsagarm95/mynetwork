@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include "queue.h"
 
-queue* add_element(int value, queue* Q){
+queue* add_element(int time, int sequence_number, queue* Q){
 	queue_node* temp = (queue_node*)malloc(sizeof(queue_node));
 	temp->next = NULL;
-	temp->value = value;
+	temp->time = time;
+	temp->sequence_number = sequence_number;
 	if(Q->num_of_elements == 0){
 		Q->front = temp;
 	}else{
@@ -34,24 +35,24 @@ queue* remove_element(queue* Q){
 }
 
 queue* queue_init(){
-	Q = (queue*)malloc(sizeof(queue));
+	queue* Q = (queue*)malloc(sizeof(queue));
 	Q->num_of_elements = 0;
 	Q->front = NULL;
 	Q->rear = NULL;
 }
 
-int main(){
-	queue* Q;
-	Q = queue_init();
-	int i;
-	for(i = 0 ; i < 10; i++){
-		Q = add_element(i, Q);
-	}
-	for (i = 0; i < 10; ++i)
-	{
-		/* code */
-		printf("%d\n",Q->front->value );
-		Q = remove_element(Q);
-	}
-	Q = remove_element(Q);
-}
+// int main(){
+// 	queue* Q;
+// 	Q = queue_init();
+// 	int i;
+// 	for(i = 0 ; i < 10; i++){
+// 		Q = add_element(i, Q);
+// 	}
+// 	for (i = 0; i < 10; ++i)
+// 	{
+// 		/* code */
+// 		printf("%d\n",Q->front->time );
+// 		Q = remove_element(Q);
+// 	}
+// 	Q = remove_element(Q);
+// }

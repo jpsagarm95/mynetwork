@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <math.h>
 #include "generator.h"
+#include "queue.h"
 
 extern int debug_mode;
 extern char ip_name[100];
@@ -21,6 +22,9 @@ extern int* buffer_free_info;
 extern int curr_seq_num;
 extern int* seq_num_pos_in_buf;
 extern int* packets_need_resend;
+extern queue* timer_queue;
+extern int timeout;
+
 
 extern pthread_mutex_t buffer_lock;
 extern pthread_mutex_t ack_lock;
@@ -34,6 +38,8 @@ int size_gen(){
 void initializer(int argc, char* argv[]){
 	srand(time(NULL));
 	int i = 0;
+	timeout = 10;
+	timer_queue = (queue*)malloc(sizeof(queue));
 	debug_mode = 0;
 	seq_num_bits = 3;
 	for(i = 1 ; i < argc ; i++){

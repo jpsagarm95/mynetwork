@@ -47,21 +47,15 @@ int main(int argc, char *argv[]) {
     fflush(stdout);
 
     while (1) {
-        bytes_read = recvfrom(sock, recv_data, 1024, 0,
-                (struct sockaddr *) &client_addr, &addr_len);
+        bytes_read = recvfrom(sock, recv_data, 1024, 0, (struct sockaddr *) &client_addr, &addr_len);
 
+        //printf("Bytes sent %d\n", bytes_read);
+        //recv_data[bytes_read] = '\0';
 
-        recv_data[bytes_read] = '\0';
-
-        printf("\n(%s , %d) said : ", inet_ntoa(client_addr.sin_addr),
-                ntohs(client_addr.sin_port));
-        printf("%s", recv_data);
-        fflush(stdout);
+        //printf("\n(%s , %d) said : ", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        fwrite(recv_data + sizeof(int), sizeof(char), bytes_read - sizeof(int), stdout);
         printf("\n");
-        printf("Type a word to send(q or Q to quit):");
-        scanf("%s", send_data);
-        sendto(sock, send_data, strlen(send_data), 0,
-                (struct sockaddr *) &client_addr, sizeof (struct sockaddr));
+        fflush(stdout);
     }
     
     return 0;

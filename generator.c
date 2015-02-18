@@ -1,24 +1,29 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <math.h>
+#include "generator.h"
 
-int debug_mode;
-char ip_name[100];
-int port_number;
-int seq_num_bits;
-int MAX_PACKET_LENGTH;
-int PACKET_GEN_RATE;
-int MAX_PACKETS;
-int WINDOW_SIZE;
-int BUFFER_SIZE;
-int HEADER_SIZE;	// just the number of bytes req for the seq number
-char** buffer;
-int* len_of_packets_in_buf;
-int* buffer_free_info;
-int curr_seq_num;
-int* seq_num_pos_in_buf;
+extern int debug_mode;
+extern char ip_name[100];
+extern int port_number;
+extern int seq_num_bits;
+extern int MAX_PACKET_LENGTH;
+extern int PACKET_GEN_RATE;
+extern int MAX_PACKETS;
+extern int WINDOW_SIZE;
+extern int BUFFER_SIZE;
+extern int HEADER_SIZE;	// just the number of bytes req for the seq number
+extern char** buffer;
+extern int* len_of_packets_in_buf;
+extern int* buffer_free_info;
+extern int curr_seq_num;
+extern int* seq_num_pos_in_buf;
+extern int* packets_need_resend;
 
+extern pthread_mutex_t buffer_lock;
+extern pthread_mutex_t ack_lock;
 
 // need to change to the uniform distribution
 int size_gen(){
@@ -70,6 +75,10 @@ void initializer(int argc, char* argv[]){
 	len_of_packets_in_buf = (int *)malloc(sizeof(int) * BUFFER_SIZE);
 	buffer_free_info = (int *)malloc(sizeof(int) * BUFFER_SIZE);
 	seq_num_pos_in_buf = (int *)malloc(sizeof(int) * tot);
+	packets_need_resend = (int *)malloc(sizeof(int) * WINDOW_SIZE);
+	for(i = 0 ; i < WINDOW_SIZE ; i++){
+		packets_need_resend[i] = 1;
+	}
 	for(i = 0 ; i < BUFFER_SIZE ; i++){
 		buffer[i] = (char *)malloc(sizeof(char) * (HEADER_SIZE + MAX_PACKET_LENGTH));
 		buffer_free_info[i] = 0;
@@ -108,24 +117,32 @@ void buffer_allocation(char* packet, int packet_length){
 }
 
 
-int main(int argc, char * argv[]){
-	initializer(argc, argv);
-	printf("%d %s %d %d %d %d %d %d %d\n", debug_mode, ip_name, port_number, seq_num_bits, MAX_PACKET_LENGTH, PACKET_GEN_RATE, MAX_PACKETS, WINDOW_SIZE, BUFFER_SIZE);
+void* packet_generator(void* param){
+
+//	printf("%d %s %d %d %d %d %d %d %d\n", debug_mode, ip_name, port_number, seq_num_bits, MAX_PACKET_LENGTH, PACKET_GEN_RATE, MAX_PACKETS, WINDOW_SIZE, BUFFER_SIZE);
 	FILE* fp = fopen("check_file.txt","r");
 	char buf[HEADER_SIZE + MAX_PACKET_LENGTH];
 	int temp_packet_length = 0;
 	int i = 0;
-	int g = 0;
+	int g = 0, read_bytes;
 	while(1){
 		temp_packet_length = size_gen();
-		fread(buf, sizeof(char), temp_packet_length, fp);
-		buffer_allocation(buf, temp_packet_length);
-		printf("\n");
-		sleep(1.0/PACKET_GEN_RATE);
-		g++;
-		if(g == BUFFER_SIZE)
+		read_bytes = fread(buf, sizeof(char), temp_packet_length, fp);
+		if(read_bytes == 0)
 			break;
+		
+		pthread_mutex_lock(&buffer_lock);
+		buffer_allocation(buf, temp_packet_length);
+		pthread_mutex_unlock(&buffer_lock);
+//		printf("%s\n","I am out");
+
+		double temp = (1.0/PACKET_GEN_RATE) * 1000000;
+//		printf("%f\n",temp);
+		usleep(temp);
+		g++;
 	}
+
+	printf("%s\n", "Its generator time");
 	for(i = 0; i < BUFFER_SIZE; i++){
 		fwrite((buffer[i] + HEADER_SIZE), sizeof(char), (len_of_packets_in_buf[i]), stdout);
 		printf("\n");
@@ -133,5 +150,5 @@ int main(int argc, char * argv[]){
 
 //	printf("%d %s %d %d %d %d %d %d %d\n", debug_mode, ip_name, port_number, seq_num_bits, MAX_PACKET_LENGTH, PACKET_GEN_RATE, MAX_PACKETS, WINDOW_SIZE, BUFFER_SIZE);
 	printf("\n");
-	return 0;
+	return NULL;
 }

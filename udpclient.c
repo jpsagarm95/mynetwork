@@ -123,14 +123,16 @@ int main(int argc, char *argv[]) {
 				}
 				pthread_mutex_lock(&buffer_lock);
 				int total_packet_length = len_of_packets_in_buf[pos] + HEADER_SIZE;
-				fwrite(buffer[pos] + sizeof(int), sizeof(char), total_packet_length - sizeof(int) , stdout);
-				printf("\n");
+				//fwrite(buffer[pos] + sizeof(int), sizeof(char), total_packet_length - sizeof(int) , stdout);
+				//printf("\n");
 				sendto(sock, buffer[pos], total_packet_length, 0, (struct sockaddr *) &server_addr, sizeof (struct sockaddr));
 				pthread_mutex_unlock(&buffer_lock);
 
 				pthread_mutex_lock(&timer_lock);
 				gettimeofday(&timenow, NULL);
-				timer_queue = add_element(timenow.tv_sec * 1000 + (timenow.tv_usec / 1000) + timeout, base_seq_num + i , timer_queue);
+				//printf("%s\n", "Actual part");
+				printf("%d\n", (timenow.tv_sec % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout);
+				timer_queue = add_element((timenow.tv_sec  % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout, i , timer_queue);
 				pthread_mutex_unlock(&timer_lock);
 
 				pthread_mutex_lock(&ack_lock);

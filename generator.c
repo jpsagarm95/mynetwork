@@ -38,7 +38,7 @@ int size_gen(){
 void initializer(int argc, char* argv[]){
 	srand(time(NULL));
 	int i = 0;
-	timeout = 10;
+	timeout = 10000;
 	timer_queue = (queue*)malloc(sizeof(queue));
 	debug_mode = 0;
 	seq_num_bits = 3;

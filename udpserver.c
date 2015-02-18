@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
         fflush(stdout);
         RECV[0] = seq + 1;
         RECV[seq + 1] = 1;
-        sendto(sock, (char* )RECV, 6 * sizeof(int) + 1, 0, (struct sockaddr *) &client_addr, sizeof (struct sockaddr));
+        // sendto(sock, (char* )RECV, 6 * sizeof(int) + 1, 0, (struct sockaddr *) &client_addr, sizeof (struct sockaddr));
     }
     
     return 0;

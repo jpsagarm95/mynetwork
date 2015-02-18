@@ -35,15 +35,81 @@ extern pthread_mutex_t ack_lock;
 extern pthread_mutex_t timer_lock;
 
 void* receive_ack(void* param){
-	
 	int bytes_read;
 	int recv_data[WINDOW_SIZE + 1];
 	int i;
 	int recv_base_seq_number;
-	while(1){
-		bytes_read = recvfrom(sock, (char *)recv_data, (WINDOW_SIZE + 1) * sizeof(int), 0, (struct sockaddr *) &server_addr, sizeof(struct sockaddr));
-		for(i = 0 ; i < WINDOW_SIZE + 1 ; i++)
-			printf("%d\n", recv_data[i]);
+	int acks_got[WINDOW_SIZE];
+	for(i = 0 ; i < WINDOW_SIZE ; i++){
+		acks_got[i] = 0;
 	}
+	while(1){
+
+
+		fd_set rfds;
+		struct timeval tv;
+		int retval;
+
+		/* Watch stdin (fd 0) to see when it has input. */
+		FD_ZERO(&rfds);
+		FD_SET(sock, &rfds);
+
+		/* Wait up to five seconds. */
+		tv.tv_sec = 0;
+		tv.tv_usec = 1;
+
+		retval = select(1, &rfds, NULL, NULL, &tv);
+		/* Don't rely on the value of tv now! */
+
+		if (retval == 0 || retval == -1){
+			pthread_mutex_lock(&timer_lock);
+			if(timer_queue->front != NULL){
+				struct timeval timenow;
+				gettimeofday(&timenow, NULL);
+				if(timer_queue->front->time < ((timenow.tv_sec  % 1000)* 1000 + (timenow.tv_usec / 1000))){
+					pthread_mutex_lock(&ack_lock);
+					// printf("Later checking\n");
+					// printf("%d\n", timer_queue->front->time);
+					// printf("%d\n", ((timenow.tv_sec  % 1000)* 1000 + (timenow.tv_usec / 1000)));
+					packets_need_resend[timer_queue->front->sequence_number] = 1;
+					timer_queue = remove_element(timer_queue);
+					pthread_mutex_unlock(&ack_lock);
+				}
+			}
+			pthread_mutex_unlock(&timer_lock);
+		}
+		else{
+			printf("%s\n", "Wrong block 1");
+			bytes_read = recvfrom(sock, (char *)recv_data, (WINDOW_SIZE + 1) * sizeof(int), 0, (struct sockaddr *) &server_addr, sizeof(struct sockaddr));
+			recv_base_seq_number = recv_data[0];
+			pthread_mutex_lock(&buffer_lock);
+			pthread_mutex_lock(&ack_lock);
+			pthread_mutex_lock(&timer_lock);
+			clear_buffer(recv_base_seq_number, recv_data + 1);
+			pthread_mutex_unlock(&buffer_lock);
+			pthread_mutex_unlock(&ack_lock);
+			pthread_mutex_unlock(&timer_lock);
+		}
+	}	
 	return NULL;
+}
+
+void clear_buffer(int num, int* arr){
+	int i = 0;
+	int act_num, pos;
+	int tot = pow(2, seq_num_bits);
+	for(i = 0 ; i < WINDOW_SIZE ; i++){
+		act_num = ( num + i ) % tot;
+		pos = seq_num_pos_in_buf[act_num];
+		if(pos == -1){
+			continue;
+		}
+		if(arr[i] == 1){
+			packets_need_resend[i] = -1;
+			buffer_free_info[pos] = 0;
+			len_of_packets_in_buf[pos] = 0;
+			seq_num_pos_in_buf[i] = -1;
+			timer_queue = remove_specific_element(i, timer_queue);
+		}
+	}
 }

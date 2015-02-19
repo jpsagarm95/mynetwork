@@ -1,0 +1,23 @@
+Transmit the packet based on the Window conditions. Start the timeout timer for this packet’s sequence
+number. The timeout is set to 300 ms for the first 10 packets and then 2 × RT T ave (in milliseconds) for all
+other packets.
+Process the next packet (when available) and transmit it if the sender window is not exhausted, i.e. the
+total number of unacknowledged packets is at most WINDOW_SIZE. Given an n-bit sequence number, the
+maximum window size will be 2 n−1 for Selective Repeat.
+4. If an ACK packet arrives, process it, update local state variables and cancel timers corresponding to acknowl-
+edged packets. Remove the packet from the Transmit Buffer. Note that selective ACKs are used.
+For each sequence number acknowledged, calculate the Round-trip-Time (RTT) for the packet and update the
+average RTT (RT T ave ) for the packets acknowledged so far.
+5. If a timer expires, re-transmit only the unacknowledged packet.
+The sender terminates after MAX_PACKETS (a command-line parameter) have been successfully ACKNOWL-
+EDGED (OR) if the maximum retransmission attempts for any sequence number exceeds 10.
+Summary of Command Line Options: The command line options provided to the sender are listed below:
+• -d – Turn ON Debug Mode (OFF if -d flag not present)
+• -s string – Receiver Name or IP address.
+• -p integer – Receiver’s Port Number
+• -n integer – Sequence Number Field Length (in bits)
+• -L integer – MAX_PACKET_LENGTH, in bytes
+• -R integer – PACKET_GEN_RATE, in packets per second
+• -N integer – MAX_PACKETS
+• -W integer – WINDOW_SIZE (Assume that SWS = RWS)
+• -B integer – BUFFER_SIZE

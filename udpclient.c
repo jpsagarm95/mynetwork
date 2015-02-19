@@ -40,9 +40,9 @@ int base_seq_num;
 // three way communication -1 packet acked, 0 wait, 1 resend
 int* packets_need_resend;
 queue* timer_queue;
-int timeout;
+float timeout;
 long total_suc_transmissions;
-int temp_timeout;
+float temp_timeout;
 
 pthread_mutex_t buffer_lock;
 pthread_mutex_t ack_lock;
@@ -141,6 +141,7 @@ int main(int argc, char *argv[]) {
 
 
 				printf("%d %d\n", i, base_seq_num);
+				// printf("%f\n", timeout);
 				// printf("%d\n", base_seq_num + i);
 
 
@@ -148,7 +149,7 @@ int main(int argc, char *argv[]) {
 				gettimeofday(&timenow, NULL);
 				//printf("%s\n", "Actual part");
 				// printf("%d\n", (timenow.tv_sec % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout);
-				timer_queue = add_element((timenow.tv_sec  % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout, i , timer_queue);
+				timer_queue = add_element((timenow.tv_sec  % 1000) * 1000 + (timenow.tv_usec / 1000.0) + timeout, i , timeout, timer_queue);
 				pthread_mutex_unlock(&timer_lock);
 
 

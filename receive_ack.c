@@ -28,9 +28,9 @@ extern int base_seq_num;
 // three way communication -1 packet acked, 0 wait, 1 resend
 extern int* packets_need_resend;
 extern queue* timer_queue;
-extern int timeout;
+extern float timeout;
 extern long total_suc_transmissions;
-extern int temp_timeout;
+extern float temp_timeout;
 
 extern pthread_mutex_t buffer_lock;
 extern pthread_mutex_t ack_lock;
@@ -68,7 +68,7 @@ void* receive_ack(void* param){
 			if(timer_queue->front != NULL){
 				struct timeval timenow;
 				gettimeofday(&timenow, NULL);
-				if(timer_queue->front->time < ((timenow.tv_sec  % 1000)* 1000 + (timenow.tv_usec / 1000))){
+				if(timer_queue->front->time < ((timenow.tv_sec  % 1000)* 1000 + (timenow.tv_usec / 1000.0))){
 					pthread_mutex_lock(&ack_lock);
 					// printf("Later checking\n");
 					// printf("%d\n", timer_queue->front->time);
@@ -84,11 +84,11 @@ void* receive_ack(void* param){
 			// printf("%s\n", "inside it");
 			bytes_read = recvfrom(sock, (char *)recv_data, (WINDOW_SIZE + 1) * sizeof(int), 0, (struct sockaddr *) &server_addr, sizeof(struct sockaddr));
 			recv_base_seq_number = recv_data[0];
-			printf("%s\n", "Starting recv_data");
-			for(i = 0 ; i < (WINDOW_SIZE + 1) ; i++){
-				printf("%d ", recv_data[i]);
-			}
-			printf("\n");
+			// printf("%s\n", "Starting recv_data");
+			// for(i = 0 ; i < (WINDOW_SIZE + 1) ; i++){
+			// 	printf("%d ", recv_data[i]);
+			// }
+			// printf("\n");
 			total_suc_transmissions += 1;
 			pthread_mutex_lock(&buffer_lock);
 			pthread_mutex_lock(&ack_lock);
@@ -97,11 +97,15 @@ void* receive_ack(void* param){
 			pthread_mutex_unlock(&buffer_lock);
 			pthread_mutex_unlock(&ack_lock);
 			pthread_mutex_unlock(&timer_lock);
+			printf("%d\n",total_suc_transmissions );
+			// if (total_suc_transmissions > 10){
+			// 	timeout = temp_timeout;
+			// }
 			// printf("%s\n", "Starting");
 			// for(i = 0 ; i < pow(2, seq_num_bits) ; i++){
 			// 	printf("%d ", seq_num_pos_in_buf[i]);
 			// }
-			printf("\n\n\n\n\n\n");
+			// printf("\n\n\n\n\n\n");
 		}
 	}	
 	return NULL;
@@ -115,8 +119,8 @@ void clear_buffer(int num, int* arr){
 		act_num = ( num + i ) % tot;
 
 		pos = seq_num_pos_in_buf[act_num];
-		printf("%s\n", "Clear Buffer");
-		printf("%d %d\n",act_num , pos);
+		// printf("%s\n", "Clear Buffer");
+		// printf("%d %d\n",act_num , pos);
 		if(pos == -1){
 			continue;
 		}
@@ -126,6 +130,20 @@ void clear_buffer(int num, int* arr){
 			buffer_free_info[pos] = 0;
 			len_of_packets_in_buf[pos] = 0;
 			seq_num_pos_in_buf[act_num] = -1;
+			float value = get_specific_element(i, timer_queue);
+			// printf("%d\n", value);
+			if(value != 0){
+				struct timeval timenow;
+				// printf("%s\n", "I am inside");
+				gettimeofday(&timenow, NULL);
+				value = ((timenow.tv_sec  % 1000) * 1000 + (timenow.tv_usec / 1000.0)) - value;
+				if(total_suc_transmissions == 1){
+					temp_timeout =  2.0 * value;
+				}else{
+					temp_timeout =   ((total_suc_transmissions - 1) * temp_timeout + 2.0 * value )/ (total_suc_transmissions * 1.0) ;
+				}
+				printf("%f\n", temp_timeout);
+			}
 			timer_queue = remove_specific_element(i, timer_queue);
 		}
 	}

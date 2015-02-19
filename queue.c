@@ -16,10 +16,11 @@
 // 	int num_of_elements;
 // }queue;
 
-queue* add_element(int time, int sequence_number, queue* Q){
+queue* add_element(float time, int sequence_number, float timeout, queue* Q){
 	queue_node* temp = (queue_node*)malloc(sizeof(queue_node));
 	temp->next = NULL;
 	temp->time = time;
+	temp->timeout = timeout;
 	temp->sequence_number = sequence_number;
 	if(Q->num_of_elements == 0){
 		Q->front = temp;
@@ -73,19 +74,19 @@ queue* remove_specific_element(int sequence_number, queue* Q){
 }
 
 
-int get_specific_element(int sequence_number, queue* Q){
-	int value;
+float get_specific_element(int sequence_number, queue* Q){
+	float value;
 	if(Q->front == NULL)
 		return 0;
 	if(Q->front->sequence_number == sequence_number){
-		return Q->front->time;
+		return (Q->front->time - Q->front->timeout);
 	}
 	queue_node* prev = Q->front;
 	queue_node* temp = Q->front->next;
 	while(temp != NULL){
 		if(temp->sequence_number == sequence_number){
-			value = temp->time;
-			Q->num_of_elements -= 1;
+			value = temp->time - temp->timeout;
+			// printf("%d %d\n",temp->time, temp->timeout );
 			return value;
 		}
 		prev = temp;

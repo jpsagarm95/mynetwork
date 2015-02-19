@@ -23,9 +23,9 @@ extern int curr_seq_num;
 extern int* seq_num_pos_in_buf;
 extern int* packets_need_resend;
 extern queue* timer_queue;
-extern int timeout;
+extern float timeout;
 extern long total_suc_transmissions;
-extern int temp_timeout;
+extern float temp_timeout;
 
 extern pthread_mutex_t buffer_lock;
 extern pthread_mutex_t ack_lock;

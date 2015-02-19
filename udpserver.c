@@ -66,13 +66,14 @@ int main(int argc, char *argv[]) {
         j = 0;
         bytes_read = recvfrom(sock, recv_data, 1024, 0, (struct sockaddr *) &client_addr, &addr_len);
         drop = drop_or_not();
+        drop = 0;
         printf("Dropping %d\n", drop);
         if(drop == 1){
             continue;
         }
         strncpy((char *)&seq, recv_data, sizeof(int));
         if((seq < base_seq_num) && (new_window_start != 1)){
-            printf("%s %d\n", "In the discusssion", seq);
+            // printf("%s %d\n", "In the discusssion", seq);
             packets_received[tot - base_seq_num + seq] = 1;
         }else if(seq < base_seq_num){
 

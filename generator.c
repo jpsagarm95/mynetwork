@@ -24,7 +24,8 @@ extern int* seq_num_pos_in_buf;
 extern int* packets_need_resend;
 extern queue* timer_queue;
 extern int timeout;
-
+extern long total_suc_transmissions;
+extern int temp_timeout;
 
 extern pthread_mutex_t buffer_lock;
 extern pthread_mutex_t ack_lock;
@@ -38,7 +39,9 @@ int size_gen(){
 void initializer(int argc, char* argv[]){
 	srand(time(NULL));
 	int i = 0;
-	timeout = 10000;
+	timeout = 300;
+	total_suc_transmissions = 0;
+	temp_timeout = 0;
 	timer_queue = (queue*)malloc(sizeof(queue));
 	debug_mode = 0;
 	seq_num_bits = 3;
@@ -114,6 +117,7 @@ void buffer_allocation(char* packet, int packet_length){
 	int temp_seq_num = curr_seq_num;
 	int tot = pow(2, seq_num_bits);
 	curr_seq_num = (curr_seq_num + 1) % tot;
+	// printf("seq number %d at %d\n", curr_seq_num, temp_position);
 	strncpy(buffer[temp_position], (char *)&temp_seq_num, HEADER_SIZE);
 	strncpy(buffer[temp_position] + HEADER_SIZE, packet, packet_length);
 	buffer_free_info[temp_position] = 1;
@@ -132,6 +136,10 @@ void* packet_generator(void* param){
 	int i = 0;
 	int g = 0, read_bytes;
 	while(1){
+		// printf("%s\n", "Starting");
+		// for(i = 0 ; i < pow(2, seq_num_bits) ; i++){
+		// 	printf("%d\n", seq_num_pos_in_buf[i]);
+		// }
 		temp_packet_length = size_gen();
 		read_bytes = fread(buf, sizeof(char), temp_packet_length, fp);
 		if(read_bytes == 0)
@@ -148,13 +156,14 @@ void* packet_generator(void* param){
 		g++;
 	}
 
-	printf("%s\n", "Its generator time");
-	for(i = 0; i < BUFFER_SIZE; i++){
-		fwrite((buffer[i] + HEADER_SIZE), sizeof(char), (len_of_packets_in_buf[i]), stdout);
-		printf("\n");
-	}
+	// printf("%s\n", "Its generator time");
+	// for(i = 0; i < BUFFER_SIZE; i++){
+	// 	fwrite((buffer[i] + HEADER_SIZE), sizeof(char), (len_of_packets_in_buf[i]), stdout);
+	// 	printf("\n");
+	// }
 
 //	printf("%d %s %d %d %d %d %d %d %d\n", debug_mode, ip_name, port_number, seq_num_bits, MAX_PACKET_LENGTH, PACKET_GEN_RATE, MAX_PACKETS, WINDOW_SIZE, BUFFER_SIZE);
 	printf("\n");
+	printf("%s\n", "File over");
 	return NULL;
 }

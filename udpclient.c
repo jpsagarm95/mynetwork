@@ -41,6 +41,8 @@ int base_seq_num;
 int* packets_need_resend;
 queue* timer_queue;
 int timeout;
+long total_suc_transmissions;
+int temp_timeout;
 
 pthread_mutex_t buffer_lock;
 pthread_mutex_t ack_lock;
@@ -59,7 +61,8 @@ IP address :argv[2]
 
 int new_window(){
 	int tot = pow(2, seq_num_bits);
-	base_seq_num = base_seq_num % tot;
+	// printf("%s\n", "Moving to new_window");
+	base_seq_num = ( base_seq_num  + WINDOW_SIZE ) % tot;
 	int i;
 	for(i = 0 ; i < WINDOW_SIZE ; i++){
 		packets_need_resend[i] = 1;
@@ -99,28 +102,36 @@ int main(int argc, char *argv[]) {
     addr_len = sizeof (struct sockaddr);
 
     
-    printf("%s\n", "Initialized");
+    // printf("%s\n", "Initialized");
     pthread_t gen;
     pthread_t ack_receiver;
     pthread_create(&gen, NULL, &packet_generator, NULL);
     pthread_create(&ack_receiver, NULL, &receive_ack, NULL);
     //packet_generator(NULL);
-    int i, total_ack, check;
-    printf("%s\n", "thread created");
+    int i, total_ack, check, tot = pow(2, seq_num_bits);
+    // printf("%s\n", "thread created");
     while (1) {
     	total_ack = 1;
 		for(i = 0; i < WINDOW_SIZE; i++){
+			
 			pthread_mutex_lock(&ack_lock);
-
 			check = packets_need_resend[i];
 			pthread_mutex_unlock(&ack_lock);
 			if(check == 1){
 				total_ack = 0;
-				int pos = seq_num_pos_in_buf[base_seq_num + i];
+				int pos;
+				if(base_seq_num + i >= tot){
+					pos = seq_num_pos_in_buf[base_seq_num + i - tot];
+				}else{
+					pos = seq_num_pos_in_buf[base_seq_num + i];
+				}
 				if(pos == -1){
 					i--;
+					// printf("%s\n", "Not found");
 					continue;
 				}
+
+
 				pthread_mutex_lock(&buffer_lock);
 				int total_packet_length = len_of_packets_in_buf[pos] + HEADER_SIZE;
 				//fwrite(buffer[pos] + sizeof(int), sizeof(char), total_packet_length - sizeof(int) , stdout);
@@ -128,17 +139,25 @@ int main(int argc, char *argv[]) {
 				sendto(sock, buffer[pos], total_packet_length, 0, (struct sockaddr *) &server_addr, sizeof (struct sockaddr));
 				pthread_mutex_unlock(&buffer_lock);
 
+
+				printf("%d %d\n", i, base_seq_num);
+				// printf("%d\n", base_seq_num + i);
+
+
 				pthread_mutex_lock(&timer_lock);
 				gettimeofday(&timenow, NULL);
 				//printf("%s\n", "Actual part");
-				printf("%d\n", (timenow.tv_sec % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout);
+				// printf("%d\n", (timenow.tv_sec % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout);
 				timer_queue = add_element((timenow.tv_sec  % 1000) * 1000 + (timenow.tv_usec / 1000) + timeout, i , timer_queue);
 				pthread_mutex_unlock(&timer_lock);
+
+
 
 				pthread_mutex_lock(&ack_lock);
 				packets_need_resend[i] = 0;
 				pthread_mutex_unlock(&ack_lock);
 			}else if(check == 0){
+				// printf("%s\n", "In the loop.");
 				total_ack = 0;
 			}
 		}

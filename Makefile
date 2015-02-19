@@ -1,7 +1,7 @@
 all: udpserver udpclient
 
-udpserver: udpserver.o
-	gcc -o udpserver udpserver.o 
+udpserver: udpserver.o receiver.o
+	gcc -o udpserver udpserver.o receiver.o -lm
 	
 udpclient: udpclient.o generator.o queue.o receive_ack.o
 	gcc -o udpclient udpclient.o generator.o queue.o receive_ack.o -lm -pthread
@@ -20,6 +20,9 @@ queue.o: queue.c
 
 receive_ack.o: receive_ack.c
 	gcc -c -g -w receive_ack.c
+
+receiver.o: receiver.c
+	gcc -c -g receiver.c
 
 clean:
 	rm *.o udpclient udpserver

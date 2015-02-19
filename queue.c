@@ -72,6 +72,28 @@ queue* remove_specific_element(int sequence_number, queue* Q){
 	return Q;
 }
 
+
+int get_specific_element(int sequence_number, queue* Q){
+	int value;
+	if(Q->front == NULL)
+		return 0;
+	if(Q->front->sequence_number == sequence_number){
+		return Q->front->time;
+	}
+	queue_node* prev = Q->front;
+	queue_node* temp = Q->front->next;
+	while(temp != NULL){
+		if(temp->sequence_number == sequence_number){
+			value = temp->time;
+			Q->num_of_elements -= 1;
+			return value;
+		}
+		prev = temp;
+		temp = temp->next;
+	}
+	return 0;
+}
+
 queue* queue_init(){
 	queue* Q = (queue*)malloc(sizeof(queue));
 	Q->num_of_elements = 0;
